@@ -198,7 +198,7 @@ defmodule Cassandra.Cluster do
 
   @doc false
   def handle_call({:register, pid}, _from, state) do
-    if Process.alive?(pid) and not pid in state.listeners do
+    if Process.alive?(pid) and pid not in state.listeners do
       Process.monitor(pid)
       {:reply, :ok, Map.update(state, :listeners, [pid], &[pid | &1])}
     else
