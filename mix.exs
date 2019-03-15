@@ -29,7 +29,7 @@ defmodule Cassandra.Mixfile do
   ]
 
   defp deps, do: [
-    {:db_connection, "~> 1.1"},
+    {:db_connection, "~> 2.0"},
     {:elixir_make, "~> 0.4", runtime: false},
     {:ex_doc, "~> 0.18.0", only: :dev},
     {:excheck, "~> 0.5", only: :test},
