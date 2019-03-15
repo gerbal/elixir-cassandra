@@ -156,7 +156,7 @@ defmodule CQL.DataTypes.Decoder do
     {list, rest} = ntimes(2 * n, :bytes, buffer)
     map =
       list
-      |> Enum.chunk(2)
+      |> Enum.chunk_every(2)
       |> Enum.map(fn [k, v] -> {decode(k, ktype), decode(v, vtype)} end)
       |> Enum.into(%{})
     {map, rest}
