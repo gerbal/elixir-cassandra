@@ -5,7 +5,7 @@ defmodule Cassandra.ClusterTest do
 
   @moduletag :capture_log
 
-  @host Cassandra.TestHelper.host
+  @host Cassandra.TestHelper.host()
 
   setup_all do
     {:ok, cluster} = Cluster.start_link(contact_points: [@host])

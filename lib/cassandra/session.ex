@@ -14,8 +14,8 @@ defmodule Cassandra.Session do
     executor_pool: [
       size: 10,
       owerflow_size: 0,
-      strategy: :lifo,
-    ],
+      strategy: :lifo
+    ]
   ]
 
   def start_link(cluster, options \\ []) do
@@ -56,17 +56,18 @@ defmodule Cassandra.Session do
       |> Keyword.put(:balancer, balancer)
 
     {executor_pool_options, options} = Keyword.pop(options, :executor_pool)
+
     executor_pool_options = [
       name: {:local, Keyword.fetch!(options, :session)},
-      strategy:      Keyword.get(executor_pool_options, :strategy, :lifo),
-      size:          Keyword.get(executor_pool_options, :size, 10),
-      max_overflow:  Keyword.get(executor_pool_options, :owerflow, 0),
-      worker_module: Executor,
+      strategy: Keyword.get(executor_pool_options, :strategy, :lifo),
+      size: Keyword.get(executor_pool_options, :size, 10),
+      max_overflow: Keyword.get(executor_pool_options, :owerflow, 0),
+      worker_module: Executor
     ]
 
     children = [
       worker(ConnectionManager, [cluster, options]),
-      :poolboy.child_spec(Executor, executor_pool_options, [cluster, options]),
+      :poolboy.child_spec(Executor, executor_pool_options, [cluster, options])
     ]
 
     supervise(children, strategy: :one_for_one)

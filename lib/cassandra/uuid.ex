@@ -22,25 +22,28 @@ defmodule Cassandra.UUID do
   end
 
   def handle_call(:v4, _from, state) do
-    {:reply, UUID.uuid4, state}
+    {:reply, UUID.uuid4(), state}
   end
 
   ### Helpers ###
 
-  defp get_node(), do: :inet.getifaddrs |> get_node
+  defp get_node(), do: :inet.getifaddrs() |> get_node
   defp get_node({:ok, list}), do: get_node(list)
+
   defp get_node([{_if_name, if_config} | rest]) do
     case :lists.keyfind(:hwaddr, 1, if_config) do
-      :false ->
+      false ->
         get_node(rest)
+
       {:hwaddr, hw_addr} ->
-        if Enum.all?(hw_addr, fn(n) -> n == 0 end) do
+        if Enum.all?(hw_addr, fn n -> n == 0 end) do
           get_node(rest)
         else
           :erlang.list_to_binary(hw_addr)
         end
     end
   end
+
   defp get_node(_) do
     <<rnd_hi::7, _::1, rnd_low::40>> = :crypto.strong_rand_bytes(6)
     <<rnd_hi::7, 1::1, rnd_low::40>>

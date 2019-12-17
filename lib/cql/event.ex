@@ -11,56 +11,69 @@ defmodule CQL.Event do
   def decode(body) do
     {type, buffer} = string(body)
 
-    info = case type do
-      "TOPOLOGY_CHANGE" ->
-        {info, ""} = unpack buffer,
-          change: :string,
-          address: :inet
+    info =
+      case type do
+        "TOPOLOGY_CHANGE" ->
+          {info, ""} =
+            unpack(buffer,
+              change: :string,
+              address: :inet
+            )
 
-        info
+          info
 
-      "STATUS_CHANGE" ->
-        {info, ""} = unpack buffer,
-          change: :string,
-          address: :inet
+        "STATUS_CHANGE" ->
+          {info, ""} =
+            unpack(buffer,
+              change: :string,
+              address: :inet
+            )
 
-        info
+          info
 
-      "SCHEMA_CHANGE" ->
-        {info, buffer} = unpack buffer,
-          change: :string,
-          target: :string
+        "SCHEMA_CHANGE" ->
+          {info, buffer} =
+            unpack(buffer,
+              change: :string,
+              target: :string
+            )
 
-        {options, ""} = case info.target do
-          "KEYSPACE" ->
-            unpack buffer,
-              keyspace: :string
+          {options, ""} =
+            case info.target do
+              "KEYSPACE" ->
+                unpack(buffer,
+                  keyspace: :string
+                )
 
-          "TABLE" ->
-            unpack buffer,
-              keyspace: :string,
-              table: :string
+              "TABLE" ->
+                unpack(buffer,
+                  keyspace: :string,
+                  table: :string
+                )
 
-          "TYPE" ->
-            unpack buffer,
-              keyspace: :string,
-              type: :string
+              "TYPE" ->
+                unpack(buffer,
+                  keyspace: :string,
+                  type: :string
+                )
 
-          "FUNCTION" ->
-            unpack buffer,
-              keyspace: :string,
-              name: :string,
-              args: :string_list
+              "FUNCTION" ->
+                unpack(buffer,
+                  keyspace: :string,
+                  name: :string,
+                  args: :string_list
+                )
 
-          "AGGREGATE" ->
-            unpack buffer,
-              keyspace: :string,
-              name: :string,
-              args: :string_list
-        end
+              "AGGREGATE" ->
+                unpack(buffer,
+                  keyspace: :string,
+                  name: :string,
+                  args: :string_list
+                )
+            end
 
-        Map.put(info, :options, options)
-    end
+          Map.put(info, :options, options)
+      end
 
     %__MODULE__{type: type, info: info}
   end

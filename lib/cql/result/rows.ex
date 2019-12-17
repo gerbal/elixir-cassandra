@@ -11,14 +11,13 @@ defmodule CQL.Result.Rows do
     :column_types,
     :rows,
     :rows_count,
-    :paging_state,
+    :paging_state
   ]
 
   @doc false
   def decode_meta(buffer) do
     with {:ok, %CQL.Frame{body: body, operation: :RESULT}} <- CQL.Frame.decode(buffer),
-         {0x02, rest} <- int(body)
-    do
+         {0x02, rest} <- int(body) do
       decode(rest, false)
     else
       _ -> CQL.Error.new("trying to decode meta from frame which is not a RESULT.ROWS")
@@ -32,9 +31,11 @@ defmodule CQL.Result.Rows do
 
   @doc false
   def decode(buffer, decode_rows \\ true) do
-    {meta, buffer} = unpack buffer,
-      metadata:   &CQL.MetaData.decode/1,
-      rows_count: :int
+    {meta, buffer} =
+      unpack(buffer,
+        metadata: &CQL.MetaData.decode/1,
+        rows_count: :int
+      )
 
     columns_count = meta.metadata.columns_count
     {columns, column_types} = Enum.unzip(meta.metadata.column_types)
@@ -53,7 +54,7 @@ defmodule CQL.Result.Rows do
       column_types: column_types,
       rows: rows,
       rows_count: meta.rows_count,
-      paging_state: Map.get(meta.metadata, :paging_state),
+      paging_state: Map.get(meta.metadata, :paging_state)
     }
   end
 
@@ -63,8 +64,8 @@ defmodule CQL.Result.Rows do
   def join(rows_list) do
     rows_list
     |> Enum.reduce(fn row, %{rows_count: n, rows: list} = acc ->
-         %{acc | rows_count: n + row.rows_count, rows: list ++ row.rows}
-       end)
+      %{acc | rows_count: n + row.rows_count, rows: list ++ row.rows}
+    end)
     |> Map.put(:paging_state, nil)
   end
 

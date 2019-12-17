@@ -25,11 +25,12 @@ defmodule CQL.DataTypes do
     0x21 => :map,
     0x22 => :set,
     0x30 => :udt,
-    0x31 => :tuple,
+    0x31 => :tuple
   }
 
   def kind({id, nil}), do: kind(id)
   def kind({id, value}), do: {kind(id), value}
+
   def kind(id) when is_integer(id) do
     Map.fetch!(@kinds, id)
   end

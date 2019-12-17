@@ -22,14 +22,15 @@ defmodule CQL do
   def decode_body(nil), do: nil
 
   def decode_body(%CQL.Frame{operation: operation, body: body} = frame) do
-    body = case operation do
-      :ERROR     -> CQL.Error.decode(body)
-      :READY     -> CQL.Ready.decode(body)
-      :RESULT    -> CQL.Result.decode(body)
-      :SUPPORTED -> CQL.Supported.decode(body)
-      :EVENT     -> CQL.Event.decode(body)
-      _          -> body
-    end
+    body =
+      case operation do
+        :ERROR -> CQL.Error.decode(body)
+        :READY -> CQL.Ready.decode(body)
+        :RESULT -> CQL.Result.decode(body)
+        :SUPPORTED -> CQL.Supported.decode(body)
+        :EVENT -> CQL.Event.decode(body)
+        _ -> body
+      end
 
     %CQL.Frame{frame | body: body}
   end

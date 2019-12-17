@@ -22,7 +22,10 @@ defmodule CQL.RequestsTest do
   test "query" do
     assert {:ok, frame} = CQL.encode(%CQL.Query{query: "TEST"})
     assert {:ok, %CQL.Frame{operation: :QUERY}} = CQL.Frame.decode(frame)
-    assert %CQL.Error{code: :invalid, message: "invalid query request"} = CQL.encode(%CQL.Query{query: "test", params: nil})
+
+    assert %CQL.Error{code: :invalid, message: "invalid query request"} =
+             CQL.encode(%CQL.Query{query: "test", params: nil})
+
     assert %CQL.Error{code: :invalid, info: info} = CQL.encode(%CQL.Query{query: []})
     assert info =~ "Expected a 'long_string'"
   end
@@ -33,8 +36,15 @@ defmodule CQL.RequestsTest do
   end
 
   test "execute" do
-    assert {:ok, frame} = CQL.encode(%CQL.Execute{prepared: %CQL.Result.Prepared{metadata: %{column_types: []}}, params: %CQL.QueryParams{}})
+    assert {:ok, frame} =
+             CQL.encode(%CQL.Execute{
+               prepared: %CQL.Result.Prepared{metadata: %{column_types: []}},
+               params: %CQL.QueryParams{}
+             })
+
     assert {:ok, %CQL.Frame{operation: :EXECUTE}} = CQL.Frame.decode(frame)
-    assert %CQL.Error{code: :invalid, message: "invalid execute request"} = CQL.encode(%CQL.Execute{})
+
+    assert %CQL.Error{code: :invalid, message: "invalid execute request"} =
+             CQL.encode(%CQL.Execute{})
   end
 end

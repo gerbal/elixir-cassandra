@@ -7,4 +7,3 @@ defmodule CQL.Result.Void do
     %__MODULE__{}
   end
 end
-

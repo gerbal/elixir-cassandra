@@ -12,4 +12,3 @@ defmodule CQL.Result.SetKeyspace do
     %__MODULE__{name: keypace}
   end
 end
-

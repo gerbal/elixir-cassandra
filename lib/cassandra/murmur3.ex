@@ -9,13 +9,13 @@ defmodule Cassandra.Murmur3 do
 
   def x64_128(key, seed) when is_binary(key) do
     key
-    |> :erlang.binary_to_list
+    |> :erlang.binary_to_list()
     |> x64_128(seed)
   end
 
   def x64_128(key, seed) do
     key
-    |> :erlang.term_to_binary
+    |> :erlang.term_to_binary()
     |> x64_128(seed)
   end
 

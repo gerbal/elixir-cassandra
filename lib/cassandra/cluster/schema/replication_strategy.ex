@@ -4,7 +4,7 @@ defmodule Cassandra.Cluster.Schema.ReplicationStrategy do
   @default_strategy None
   @strategies %{
     "org.apache.cassandra.locator.SimpleStrategy" => Simple,
-    "org.apache.cassandra.locator.LocalStrategy"  => Local,
+    "org.apache.cassandra.locator.LocalStrategy" => Local
   }
 
   def replications(replication, token_ring, schema) do

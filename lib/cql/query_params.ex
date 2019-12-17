@@ -6,15 +6,13 @@ defmodule CQL.QueryParams do
 
   require Bitwise
 
-  defstruct [
-    consistency: :one,
-    values: nil,
-    skip_metadata: false,
-    page_size: nil,
-    paging_state: nil,
-    serial_consistency: nil,
-    timestamp: nil,
-  ]
+  defstruct consistency: :one,
+            values: nil,
+            skip_metadata: false,
+            page_size: nil,
+            paging_state: nil,
+            serial_consistency: nil,
+            timestamp: nil
 
   @valid_keys [
     :consistency,
@@ -23,17 +21,17 @@ defmodule CQL.QueryParams do
     :page_size,
     :paging_state,
     :serial_consistency,
-    :timestamp,
+    :timestamp
   ]
 
   @flags %{
-    :values                  => 0x01,
-    :skip_metadata           => 0x02,
-    :page_size               => 0x04,
-    :with_paging_state       => 0x08,
+    :values => 0x01,
+    :skip_metadata => 0x02,
+    :page_size => 0x04,
+    :with_paging_state => 0x08,
     :with_serial_consistency => 0x10,
-    :with_default_timestamp  => 0x20,
-    :with_names              => 0x40,
+    :with_default_timestamp => 0x20,
+    :with_names => 0x40
   }
 
   def new(options) when is_list(options) do
@@ -85,14 +83,14 @@ defmodule CQL.QueryParams do
 
     q.consistency
     |> consistency
-    |> List.wrap
+    |> List.wrap()
     |> prepend(flags)
     |> prepend(values, has_values)
     |> prepend_not_nil(q.page_size, :int)
     |> prepend_not_nil(q.paging_state, :bytes)
     |> prepend_not_nil(q.serial_consistency, :consistency)
     |> prepend(q.timestamp, has_timestamp)
-    |> Enum.reverse
-    |> Enum.join
+    |> Enum.reverse()
+    |> Enum.join()
   end
 end

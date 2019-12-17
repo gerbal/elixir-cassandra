@@ -5,7 +5,7 @@ defmodule CQL.Startup do
 
   alias CQL.{Request, Startup}
 
-  defstruct [options: %{"CQL_VERSION" => "3.0.0"}]
+  defstruct options: %{"CQL_VERSION" => "3.0.0"}
 
   defimpl Request do
     def encode(%Startup{options: options}) do

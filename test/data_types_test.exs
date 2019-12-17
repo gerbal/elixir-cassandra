@@ -29,7 +29,7 @@ defmodule CQL.DataTypesTest do
       100.001,
       [1, 2, 3],
       %{a: 1, b: 2, c: "last"},
-      true,
+      true
     ]
 
     for term <- terms do
@@ -50,12 +50,12 @@ defmodule CQL.DataTypesTest do
   end
 
   test "date" do
-    date = DateTime.utc_now |> DateTime.to_date
+    date = DateTime.utc_now() |> DateTime.to_date()
     assert date == date |> encode(:date) |> drop_size |> decode(:date)
   end
 
   test "time" do
-    time = DateTime.utc_now |> DateTime.to_time
+    time = DateTime.utc_now() |> DateTime.to_time()
     assert time == time |> encode(:time) |> drop_size |> decode(:time)
 
     time = ~T[01:20:59.999999]
@@ -71,17 +71,23 @@ defmodule CQL.DataTypesTest do
   end
 
   test "timestamp with DateTime" do
-    time = DateTime.utc_now
-    naive = time |> DateTime.to_naive |> Map.update!(:microsecond, fn {n, 6} -> {div(n, 1000) * 1000, 3} end)
+    time = DateTime.utc_now()
+
+    naive =
+      time
+      |> DateTime.to_naive()
+      |> Map.update!(:microsecond, fn {n, 6} -> {div(n, 1000) * 1000, 3} end)
+
     assert naive == time |> encode(:timestamp) |> drop_size |> decode(:timestamp)
   end
 
   test "decimal" do
     xs = [
-      {111222333444555666777888999000, 30},
-      {-100200300400500600700800900, 89},
-      {9374756681239761865712657819245, 98},
+      {111_222_333_444_555_666_777_888_999_000, 30},
+      {-100_200_300_400_500_600_700_800_900, 89},
+      {9_374_756_681_239_761_865_712_657_819_245, 98}
     ]
+
     for x <- xs do
       assert x == x |> encode(:decimal) |> drop_size |> decode(:decimal)
     end
@@ -97,8 +103,9 @@ defmodule CQL.DataTypesTest do
     xs = [
       1.2345,
       0.987654321,
-      -23.591,
+      -23.591
     ]
+
     for x <- xs do
       assert x == x |> encode(:double) |> has_size(8) |> decode(:double)
     end
@@ -108,18 +115,21 @@ defmodule CQL.DataTypesTest do
     xs = [
       1.235,
       0.981,
-      -23.590,
+      -23.590
     ]
+
     for x <- xs do
-      assert trunc(x * 1000) == x |> encode(:float) |> has_size(4) |> decode(:float) |> Kernel.*(1000) |> trunc
+      assert trunc(x * 1000) ==
+               x |> encode(:float) |> has_size(4) |> decode(:float) |> Kernel.*(1000) |> trunc
     end
   end
 
   test "inet" do
     nets = [
       {127, 0, 0, 1},
-      {192, 168, 100, 102},
+      {192, 168, 100, 102}
     ]
+
     for net <- nets do
       assert net == net |> encode(:inet) |> has_size(4) |> decode(:inet)
     end
@@ -127,8 +137,9 @@ defmodule CQL.DataTypesTest do
 
   test "inet v6" do
     nets = [
-      {0, 0, 0, 0, 0, 0, 0, 1},
+      {0, 0, 0, 0, 0, 0, 0, 1}
     ]
+
     for net <- nets do
       assert net == net |> encode(:inet) |> has_size(16) |> decode(:inet)
     end
@@ -143,8 +154,9 @@ defmodule CQL.DataTypesTest do
   test "list" do
     lists = [
       {:int, [10, 20, 30]},
-      {:text, ["name", "example", "sample"]},
+      {:text, ["name", "example", "sample"]}
     ]
+
     for {type, list} <- lists do
       assert list == list |> encode({:list, type}) |> drop_size |> decode({:list, type})
     end
@@ -154,8 +166,9 @@ defmodule CQL.DataTypesTest do
     maps = [
       {{:text, :int}, %{"a" => 10, "b" => 20, "c" => 30}},
       {{:text, :text}, %{"aaa" => "name", "bbb" => "example", "ccc" => "sample"}},
-      {{:int, :double}, %{1 => 11.1, 10 => 22.2, 100 => 33.3}},
+      {{:int, :double}, %{1 => 11.1, 10 => 22.2, 100 => 33.3}}
     ]
+
     for {type, map} <- maps do
       assert map == map |> encode({:map, type}) |> drop_size |> decode({:map, type})
     end
@@ -167,24 +180,26 @@ defmodule CQL.DataTypesTest do
 
   test "tuple" do
     types = [:int, :double, :text, :int, :float]
-    tuple = {123,  23.983,  "Test", 91,  1.0}
+    tuple = {123, 23.983, "Test", 91, 1.0}
     assert tuple == tuple |> encode({:tuple, types}) |> drop_size |> decode({:tuple, types})
   end
 
   test "varint" do
     xs = [
-      9988776655443322110987654321,
-      -19477209892471957969713409154091853,
-      89769087908775467436532432,
-      1000000000000000000000000000,
+      9_988_776_655_443_322_110_987_654_321,
+      -19_477_209_892_471_957_969_713_409_154_091_853,
+      89_769_087_908_775_467_436_532_432,
+      1_000_000_000_000_000_000_000_000_000
     ]
+
     for x <- xs do
       assert x == x |> encode(:varint) |> drop_size |> decode(:varint)
     end
   end
 
   test "uuid" do
-    uuids = [UUID.uuid1, UUID.uuid4]
+    uuids = [UUID.uuid1(), UUID.uuid4()]
+
     for uuid <- uuids do
       assert uuid == uuid |> encode(:uuid) |> drop_size |> decode(:uuid)
     end
@@ -197,6 +212,7 @@ defmodule CQL.DataTypesTest do
 
   defp has_size(buffer, size) do
     <<n::integer-32, value::bytes>> = buffer
+
     if n == size do
       value
     else

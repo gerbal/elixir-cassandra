@@ -1,4 +1,4 @@
-ExCheck.start
+ExCheck.start()
 Logger.configure(level: :info)
 
 # Code.require_file("support/cluster_manager.exs", __DIR__)
@@ -10,20 +10,22 @@ defmodule Cassandra.SessionCase do
 
       alias Cassandra.{Cluster, Session, Statement}
 
-      @host Cassandra.TestHelper.host
-      @keyspace Cassandra.TestHelper.keyspace
+      @host Cassandra.TestHelper.host()
+      @keyspace Cassandra.TestHelper.keyspace()
       @table "#{@keyspace}.#{options[:table]}"
       @create_table "CREATE TABLE #{@table} (#{options[:create]});"
       @truncate_table "TRUNCATE #{@table};"
 
       setup_all do
         session = __MODULE__.Session
+
         options = [
           contact_points: [@host],
           session: session,
           keyspace: @keyspace,
-          cache: __MODULE__.Cache,
+          cache: __MODULE__.Cache
         ]
+
         {:ok, cluster} = Cluster.start_link(options)
         {:ok, _} = Session.start_link(cluster, options)
 
@@ -53,9 +55,7 @@ defmodule Cassandra.TestHelper do
     |> hd
   end
 
-  def drop_keyspace, do: CQL.encode!(%CQL.Query{query:
-    "DROP KEYSPACE IF EXISTS #{@keyspace};"
-  })
+  def drop_keyspace, do: CQL.encode!(%CQL.Query{query: "DROP KEYSPACE IF EXISTS #{@keyspace};"})
 
   def create_keyspace, do: CQL.encode!(%CQL.Query{query: ~s(
     CREATE KEYSPACE #{@keyspace}
@@ -79,10 +79,10 @@ defmodule Cassandra.TestHelper do
   end
 end
 
-System.at_exit fn _ ->
-  Cassandra.TestHelper.teardown
-end
+System.at_exit(fn _ ->
+  Cassandra.TestHelper.teardown()
+end)
 
-Cassandra.TestHelper.setup
+Cassandra.TestHelper.setup()
 
-ExUnit.start
+ExUnit.start()

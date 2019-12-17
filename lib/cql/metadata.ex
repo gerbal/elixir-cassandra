@@ -6,28 +6,32 @@ defmodule CQL.MetaData do
   require Bitwise
 
   @flags %{
-    :global_spec    => 0x01,
+    :global_spec => 0x01,
     :has_more_pages => 0x02,
-    :no_metadata    => 0x04,
+    :no_metadata => 0x04
   }
 
   def decode(buffer, pk_indices \\ false) do
-    {meta, buffer} = unpack buffer,
-      flags:         :int,
-      columns_count: :int,
-      pk_indices:    {&pk_indices/1, when: pk_indices},
-      paging_state:  {:bytes, when: @flags.has_more_pages}
+    {meta, buffer} =
+      unpack(buffer,
+        flags: :int,
+        columns_count: :int,
+        pk_indices: {&pk_indices/1, when: pk_indices},
+        paging_state: {:bytes, when: @flags.has_more_pages}
+      )
 
     no_meta? = flag?(@flags.no_metadata, meta.flags)
-    global?  = flag?(@flags.global_spec, meta.flags)
+    global? = flag?(@flags.global_spec, meta.flags)
 
     case {no_meta?, global?} do
       {true, _} ->
         {meta, buffer}
+
       {false, true} ->
-        {global_spec, buffer}  = global_spec(buffer)
+        {global_spec, buffer} = global_spec(buffer)
         {column_types, buffer} = ntimes(meta.columns_count, &column_type/1, buffer)
         {Map.merge(meta, %{column_types: column_types, global_spec: global_spec}), buffer}
+
       {false, false} ->
         {specs, buffer} = column_specs(meta.columns_count, buffer)
         {Map.merge(meta, specs), buffer}
@@ -40,9 +44,10 @@ defmodule CQL.MetaData do
   end
 
   def global_spec(buffer) do
-    unpack buffer,
+    unpack(buffer,
       keyspace: :string,
-      table:    :string
+      table: :string
+    )
   end
 
   def column_specs(n, buffer) do
@@ -53,9 +58,9 @@ defmodule CQL.MetaData do
 
   def column_spec(buffer) do
     {keyspace, buffer} = string(buffer)
-    {table,    buffer} = string(buffer)
-    {name,     buffer} = string(buffer)
-    {type,     buffer} = option(buffer)
+    {table, buffer} = string(buffer)
+    {name, buffer} = string(buffer)
+    {type, buffer} = option(buffer)
     {{{keyspace, table}, {name, type}}, buffer}
   end
 
@@ -66,16 +71,19 @@ defmodule CQL.MetaData do
   end
 
   def option(buffer) do
-    {id,    buffer} = short(buffer)
-    {value, buffer} = case id do
-      0x00 -> string(buffer)
-      0x20 -> option(buffer)
-      0x21 -> options_pair(buffer)
-      0x22 -> option(buffer)
-      0x30 -> {nil, buffer} # TODO: UDT
-      0x31 -> options(buffer)
-      _    -> {nil, buffer}
-    end
+    {id, buffer} = short(buffer)
+
+    {value, buffer} =
+      case id do
+        0x00 -> string(buffer)
+        0x20 -> option(buffer)
+        0x21 -> options_pair(buffer)
+        0x22 -> option(buffer)
+        # TODO: UDT
+        0x30 -> {nil, buffer}
+        0x31 -> options(buffer)
+        _ -> {nil, buffer}
+      end
 
     {CQL.DataTypes.kind({id, value}), buffer}
   end

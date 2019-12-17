@@ -7,10 +7,12 @@ defmodule Cassandra.Session.ConnectionManager do
 
   def start_link(cluster, options) do
     with {:ok, balancer} <- Keyword.fetch(options, :balancer) do
-      server_options = case Keyword.get(options, :connection_manager) do
-        nil  -> []
-        name -> [name: name]
-      end
+      server_options =
+        case Keyword.get(options, :connection_manager) do
+          nil -> []
+          name -> [name: name]
+        end
+
       GenServer.start_link(__MODULE__, [cluster, balancer, options], server_options)
     else
       :error -> {:error, :missing_balancer}
@@ -32,7 +34,7 @@ defmodule Cassandra.Session.ConnectionManager do
       cluster: cluster,
       balancer: balancer,
       options: options,
-      connections: [],
+      connections: []
     }
 
     Cluster.register(cluster)
@@ -47,7 +49,7 @@ defmodule Cassandra.Session.ConnectionManager do
   end
 
   def handle_call({:connections, ips}, _from, %{connections: connections} = state) do
-    ips = ips |> List.wrap |> MapSet.new
+    ips = ips |> List.wrap() |> MapSet.new()
     reply = Enum.filter(connections, fn {ip, _pid} -> ip in ips end)
 
     {:reply, reply, state}
@@ -57,22 +59,24 @@ defmodule Cassandra.Session.ConnectionManager do
     connections =
       case start_connection(host, state.balancer, state.options) do
         {:ok, ip, pid} -> [{ip, pid} | state.connections]
-        _              -> state.connections
+        _ -> state.connections
       end
 
     {:noreply, %{state | connections: connections}}
   end
 
   def handle_info({:host, status, host}, state)
-  when status in [:down, :lost]
-  do
+      when status in [:down, :lost] do
     connections =
       case List.keyfind(state.connections, host.ip, 0) do
-        nil -> state.connections
+        nil ->
+          state.connections
+
         {_, pid} = item ->
           GenServer.stop(pid)
           List.delete(state.connections, item)
       end
+
     {:noreply, %{state | connections: connections}}
   end
 
@@ -83,7 +87,7 @@ defmodule Cassandra.Session.ConnectionManager do
   def handle_info(:refresh, state) do
     connections =
       case state.connections do
-        []          -> connect_to_up_hosts(state)
+        [] -> connect_to_up_hosts(state)
         connections -> connections
       end
 
@@ -99,22 +103,24 @@ defmodule Cassandra.Session.ConnectionManager do
 
   defp connect_to_up_hosts(state) do
     state.cluster
-    |> Cluster.up_hosts
+    |> Cluster.up_hosts()
     |> Enum.map(&start_connection(&1, state.balancer, state.options))
     |> Enum.filter(&match?({:ok, _, _}, &1))
     |> Enum.map(fn {:ok, ip, pid} -> {ip, pid} end)
   end
 
   defp connection_options(host, count, options) do
-    Keyword.merge(options, [
+    Keyword.merge(options,
       host: host.ip,
-      pool_size: count,
-    ])
+      pool_size: count
+    )
   end
 
   defp start_connection(host, balancer, options) do
     count = LoadBalancing.count(balancer, host)
-    with {:ok, pid} <- DBConnection.start_link(Connection, connection_options(host, count, options)) do
+
+    with {:ok, pid} <-
+           DBConnection.start_link(Connection, connection_options(host, count, options)) do
       Process.monitor(pid)
       Process.unlink(pid)
       {:ok, host.ip, pid}

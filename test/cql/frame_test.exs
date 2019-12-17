@@ -3,7 +3,10 @@ defmodule CQL.FrameTest do
 
   test "#body_length" do
     assert {:ok, 10} = CQL.Frame.body_length(<<0::40, 10::integer-32>>)
-    assert %CQL.Error{message: "invalid frame header"} = CQL.Frame.body_length(<<0::40, 10::integer-32, "extra bytes">>)
+
+    assert %CQL.Error{message: "invalid frame header"} =
+             CQL.Frame.body_length(<<0::40, 10::integer-32, "extra bytes">>)
+
     assert %CQL.Error{message: "invalid frame header"} = CQL.Frame.body_length(<<>>)
   end
 

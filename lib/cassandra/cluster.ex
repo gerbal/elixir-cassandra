@@ -20,7 +20,7 @@ defmodule Cassandra.Cluster do
     contact_points: [{127, 0, 0, 1}],
     port: 9042,
     connection_timeout: 1000,
-    timeout: 5000,
+    timeout: 5000
   ]
 
   @valid_options Keyword.keys(@defaults) ++ [:retry, :cache]
@@ -35,10 +35,12 @@ defmodule Cassandra.Cluster do
   See start_link/1 for more information.
   """
   def start(options \\ []) do
-    server_options = case Keyword.get(options, :cluster) do
-      nil  -> []
-      name -> [name: name]
-    end
+    server_options =
+      case Keyword.get(options, :cluster) do
+        nil -> []
+        name -> [name: name]
+      end
+
     GenServer.start(__MODULE__, options, server_options)
   end
 
@@ -60,10 +62,12 @@ defmodule Cassandra.Cluster do
   on any error it returns `{:error, reason}`.
   """
   def start_link(options \\ []) do
-    server_options = case Keyword.get(options, :cluster) do
-      nil  -> []
-      name -> [name: name]
-    end
+    server_options =
+      case Keyword.get(options, :cluster) do
+        nil -> []
+        name -> [name: name]
+      end
+
     GenServer.start_link(__MODULE__, options, server_options)
   end
 
@@ -115,13 +119,12 @@ defmodule Cassandra.Cluster do
       |> Keyword.take(@valid_options)
 
     with {socket, supported, local_data} <- select_socket(options),
-         {:ok, schema}                   <- Schema.Fetcher.fetch(local_data, socket, options[:fetcher]),
-         {:ok, watcher}                  <- Watcher.start_link(options)
-    do
+         {:ok, schema} <- Schema.Fetcher.fetch(local_data, socket, options[:fetcher]),
+         {:ok, watcher} <- Watcher.start_link(options) do
       cache =
         case Cache.new(Keyword.get(options, :cache, nil)) do
           {:ok, name} -> name
-          :error      -> nil
+          :error -> nil
         end
 
       initial_state = %{
@@ -132,7 +135,7 @@ defmodule Cassandra.Cluster do
         watcher: watcher,
         supported: supported,
         local_data: local_data,
-        listeners: [],
+        listeners: []
       }
 
       state =
@@ -143,8 +146,8 @@ defmodule Cassandra.Cluster do
       {:ok, state}
     else
       error = %ConnectionError{} -> {:stop, error}
-      error = {:error, _reason}  -> {:stop, error}
-      :error                     -> {:stop, :no_cache_name}
+      error = {:error, _reason} -> {:stop, error}
+      :error -> {:stop, :no_cache_name}
     end
   end
 
@@ -159,7 +162,7 @@ defmodule Cassandra.Cluster do
   def handle_call(:up_hosts, _from, state) do
     up_hosts =
       state.hosts
-      |> Map.values
+      |> Map.values()
       |> Enum.filter(&Host.up?/1)
 
     {:reply, up_hosts, state}
@@ -170,7 +173,7 @@ defmodule Cassandra.Cluster do
     hosts =
       state.hosts
       |> Map.take(ips)
-      |> Map.values
+      |> Map.values()
 
     {:reply, hosts, state}
   end
@@ -184,15 +187,19 @@ defmodule Cassandra.Cluster do
   def handle_call({:find_replicas, keyspace, partition_key}, _from, state) do
     token = state.partitioner.create_token(partition_key)
     replication_token = insertion_point(state.token_ring, token)
+
     hosts =
       case get_in(state, [:keyspaces, keyspace]) do
-        nil      -> []
+        nil ->
+          []
+
         keyspace ->
           case List.keyfind(keyspace.replications, replication_token, 0) do
-            nil        -> []
+            nil -> []
             {_, hosts} -> hosts
           end
       end
+
     {:reply, hosts, state}
   end
 
@@ -213,7 +220,7 @@ defmodule Cassandra.Cluster do
 
   @doc false
   def handle_info({:host, :found, {ip, _}}, state) do
-    Logger.info("new host found: #{inspect ip}")
+    Logger.info("new host found: #{inspect(ip)}")
     args = [ip, state.data_center, state.parser]
 
     state =
@@ -222,7 +229,8 @@ defmodule Cassandra.Cluster do
           Enum.each(state.listeners, &send(&1, {:host, :found, host}))
           put_in(state, [:hosts, ip], host)
 
-        _ -> state
+        _ ->
+          state
       end
 
     {:noreply, refresh_schema(state)}
@@ -230,24 +238,31 @@ defmodule Cassandra.Cluster do
 
   @doc false
   def handle_info({:host, :lost, {ip, _}}, state) do
-    Logger.warn("host lost: #{inspect ip}")
+    Logger.warn("host lost: #{inspect(ip)}")
     {host, state} = pop_in(state, [:hosts, ip])
+
     unless is_nil(host) do
       Enum.each(state.listeners, &send(&1, {:host, :lost, host}))
     end
+
     {:noreply, refresh_schema(state)}
   end
 
   @doc false
   def handle_info({:host, status, {ip, _}}, state) do
-    Logger.info("host #{status} #{inspect ip}")
-    {_, state} = get_and_update_in state, [:hosts, ip], fn
-      nil  -> :pop
-      host ->
-        host = Host.toggle(host, status)
-        Enum.each(state.listeners, &send(&1, {:host, status, host}))
-        {:ok, host}
-    end
+    Logger.info("host #{status} #{inspect(ip)}")
+
+    {_, state} =
+      get_and_update_in(state, [:hosts, ip], fn
+        nil ->
+          :pop
+
+        host ->
+          host = Host.toggle(host, status)
+          Enum.each(state.listeners, &send(&1, {:host, status, host}))
+          {:ok, host}
+      end)
+
     {:noreply, state}
   end
 
@@ -261,13 +276,16 @@ defmodule Cassandra.Cluster do
   @doc false
   def handle_info({:keyspace, change, name}, state) do
     Logger.info("Keyspace #{change}: #{name}")
+
     state =
       case schema(:fetch_keyspace, [name], state) do
         {{:ok, keyspace}, state} ->
           put_in(state, [:keyspaces, name], keyspace)
 
-        _ -> state
+        _ ->
+          state
       end
+
     {:noreply, refresh_schema(state)}
   end
 
@@ -304,12 +322,12 @@ defmodule Cassandra.Cluster do
   @doc false
   def select_socket(options) do
     options
-    |> Connection.stream
+    |> Connection.stream()
     |> Stream.flat_map(&fetch_local_data(&1, options))
     |> Enum.take(1)
     |> case do
       [result] -> result
-      []       -> ConnectionError.new("select contact point", "not available")
+      [] -> ConnectionError.new("select contact point", "not available")
     end
   end
 
@@ -331,6 +349,7 @@ defmodule Cassandra.Cluster do
     case apply(Schema.Fetcher, func, args ++ [state.socket, state.fetcher]) do
       %ConnectionError{reason: :closed} ->
         schema(func, args, %{state | socket: nil}, 0)
+
       result ->
         {result, state}
     end
@@ -339,22 +358,22 @@ defmodule Cassandra.Cluster do
   defp refresh_schema(schema) do
     host_tokens = Enum.map(schema.hosts, fn {ip, host} -> {ip, host.tokens} end)
     token_hosts = token_hosts(host_tokens)
-    token_ring  = token_ring(host_tokens, token_hosts)
-    keyspaces   = put_replications(schema.keyspaces, token_ring, schema)
+    token_ring = token_ring(host_tokens, token_hosts)
+    keyspaces = put_replications(schema.keyspaces, token_ring, schema)
 
     Map.merge(schema, %{
       keyspaces: keyspaces,
-      token_ring: token_ring,
+      token_ring: token_ring
     })
   end
 
   defp token_ring(host_tokens, token_hosts) do
     list =
       host_tokens
-      |> Keyword.values
-      |> Enum.concat
-      |> Enum.sort
-      |> Enum.uniq
+      |> Keyword.values()
+      |> Enum.concat()
+      |> Enum.sort()
+      |> Enum.uniq()
 
     [head | _] = list
     Enum.map(list ++ [head], &{&1, Map.get(token_hosts, &1)})
@@ -367,34 +386,36 @@ defmodule Cassandra.Cluster do
   end
 
   defp put_replications(keyspaces, token_ring, schema) do
-    keyspaces_with_hash = Enum.map keyspaces, fn {_, keyspace} ->
-      {keyspace, :erlang.phash2(keyspace.replication)}
-    end
+    keyspaces_with_hash =
+      Enum.map(keyspaces, fn {_, keyspace} ->
+        {keyspace, :erlang.phash2(keyspace.replication)}
+      end)
 
     replications =
       keyspaces_with_hash
       |> Enum.uniq_by(&elem(&1, 1))
       |> Enum.map(fn {keyspace, hash} ->
-           reps = Schema.ReplicationStrategy.replications(keyspace.replication, token_ring, schema)
-           {hash, reps}
-         end)
+        reps = Schema.ReplicationStrategy.replications(keyspace.replication, token_ring, schema)
+        {hash, reps}
+      end)
       |> Enum.into(%{})
 
     keyspaces_with_hash
-    |> Enum.map(fn {keyspace, hash} -> {keyspace.name, Map.put(keyspace, :replications, replications[hash])} end)
+    |> Enum.map(fn {keyspace, hash} ->
+      {keyspace.name, Map.put(keyspace, :replications, replications[hash])}
+    end)
     |> Enum.into(%{})
   end
 
-  defp insertion_point([{a,_}], _), do: a
-  defp insertion_point([{a,_}, {b,_} | _], item) when a < item and item <= b, do: b
+  defp insertion_point([{a, _}], _), do: a
+  defp insertion_point([{a, _}, {b, _} | _], item) when a < item and item <= b, do: b
   defp insertion_point([_ | tail], item), do: insertion_point(tail, item)
 
   defp fetch_local_data({_host, socket, supported}, options) do
     with {:ok, local_data} <- Schema.Fetcher.fetch_local(socket, options[:fetcher]),
          true <- bootstrapped?(local_data),
          true <- in_data_center?(local_data, options[:data_center]),
-         true <- named?(local_data, options[:cluster_name])
-    do
+         true <- named?(local_data, options[:cluster_name]) do
       [{socket, supported, local_data}]
     else
       _ -> []
@@ -406,11 +427,13 @@ defmodule Cassandra.Cluster do
   end
 
   defp named?(_, nil), do: true
+
   defp named?(local_data, name) do
     Map.get(local_data, "cluster_name") == name
   end
 
   defp in_data_center?(_, nil), do: true
+
   defp in_data_center?(local_data, data_center) do
     Map.get(local_data, "data_center") == data_center
   end

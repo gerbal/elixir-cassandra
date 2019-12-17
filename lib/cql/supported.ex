@@ -5,7 +5,7 @@ defmodule CQL.Supported do
 
   import CQL.DataTypes.Decoder
 
-  defstruct [options: %{}]
+  defstruct options: %{}
 
   def decode(body) do
     {options, ""} = string_multimap(body)

@@ -26,9 +26,9 @@ defmodule Cassandra do
     quote do
       use Supervisor
 
-      @cluster            __MODULE__.Cassandra.Cluster
-      @session            __MODULE__.Cassandra.Session
-      @cache              __MODULE__.Cassandra.Session.Cache
+      @cluster __MODULE__.Cassandra.Cluster
+      @session __MODULE__.Cassandra.Session
+      @cache __MODULE__.Cassandra.Session.Cache
       @connection_manager __MODULE__.Cassandra.Session.ConnectionManager
 
       def start_link(options \\ []) do
@@ -37,24 +37,26 @@ defmodule Cassandra do
 
       def init(options) do
         opts = unquote(opts)
-        config = case Keyword.fetch(opts, :otp_app) do
-          {:ok, app} -> Application.get_env(app, __MODULE__, [])
-          :error     -> opts
-        end
+
+        config =
+          case Keyword.fetch(opts, :otp_app) do
+            {:ok, app} -> Application.get_env(app, __MODULE__, [])
+            :error -> opts
+          end
 
         options =
           options
           |> Keyword.merge(config)
-          |> Keyword.merge([
-               cluster: @cluster,
-               session: @session,
-               cache: @cache,
-               connection_manager: @connection_manager,
-             ])
+          |> Keyword.merge(
+            cluster: @cluster,
+            session: @session,
+            cache: @cache,
+            connection_manager: @connection_manager
+          )
 
         children = [
           worker(Cluster, [options]),
-          supervisor(Session, [@cluster, options]),
+          supervisor(Session, [@cluster, options])
         ]
 
         supervise(children, strategy: :rest_for_one)
@@ -80,7 +82,7 @@ defmodule Cassandra do
 
   def init(_options) do
     children = [
-      worker(Cassandra.UUID, []),
+      worker(Cassandra.UUID, [])
     ]
 
     supervise(children, strategy: :one_for_one)

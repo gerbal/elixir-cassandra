@@ -5,6 +5,7 @@ defmodule CQL.DataTypes.Decoder do
   require Logger
 
   def decode({type, buffer}), do: decode(buffer, type)
+
   def decode(buffer, type) do
     {value, ""} = dec(buffer, type)
     value
@@ -88,15 +89,9 @@ defmodule CQL.DataTypes.Decoder do
   end
 
   def inet(
-      <<a::integer-16,
-      b::integer-16,
-      c::integer-16,
-      d::integer-16,
-      e::integer-16,
-      f::integer-16,
-      g::integer-16,
-      h::integer-16>>
-    ) do
+        <<a::integer-16, b::integer-16, c::integer-16, d::integer-16, e::integer-16,
+          f::integer-16, g::integer-16, h::integer-16>>
+      ) do
     {{a, b, c, d, e, f, g, h}, ""}
   end
 
@@ -112,6 +107,7 @@ defmodule CQL.DataTypes.Decoder do
       {val, buf} = string(buf)
       {{key, val}, buf}
     end
+
     ntimes(n, key_value, buffer)
   end
 
@@ -125,6 +121,7 @@ defmodule CQL.DataTypes.Decoder do
       {val, buf} = string_list(buf)
       {{key, val}, buf}
     end
+
     ntimes(n, key_value, buffer)
   end
 
@@ -138,6 +135,7 @@ defmodule CQL.DataTypes.Decoder do
       {val, buf} = bytes(buf)
       {{key, val}, buf}
     end
+
     ntimes(n, key_value, buffer)
   end
 
@@ -154,11 +152,13 @@ defmodule CQL.DataTypes.Decoder do
   def map(buffer, {ktype, vtype}) do
     {n, buffer} = int(buffer)
     {list, rest} = ntimes(2 * n, :bytes, buffer)
+
     map =
       list
       |> Enum.chunk_every(2)
       |> Enum.map(fn [k, v] -> {decode(k, ktype), decode(v, vtype)} end)
       |> Enum.into(%{})
+
     {map, rest}
   end
 
@@ -170,11 +170,12 @@ defmodule CQL.DataTypes.Decoder do
   def tuple(buffer, types) do
     {n, buffer} = short(buffer)
     {list, rest} = ntimes(n, :bytes, buffer)
+
     tuple =
       list
       |> Enum.zip(types)
       |> Enum.map(fn {buf, t} -> decode(buf, t) end)
-      |> List.to_tuple
+      |> List.to_tuple()
 
     {tuple, rest}
   end
@@ -277,31 +278,31 @@ defmodule CQL.DataTypes.Decoder do
     func.(buffer)
   end
 
-  defp dec(nil,    _         ), do: {nil, ""}
-  defp dec(buffer, :ascii    ), do: {buffer, ""}
-  defp dec(buffer, :bigint   ), do: long(buffer)
-  defp dec(buffer, :blob     ), do: blob(buffer)
-  defp dec(buffer, :boolean  ), do: boolean(buffer)
-  defp dec(buffer, :counter  ), do: long(buffer)
-  defp dec(buffer, :date     ), do: date(buffer)
-  defp dec(buffer, :decimal  ), do: decimal(buffer)
-  defp dec(buffer, :double   ), do: double(buffer)
-  defp dec(buffer, :float    ), do: float(buffer)
-  defp dec(buffer, :inet     ), do: inet(buffer)
-  defp dec(buffer, :int      ), do: int(buffer)
-  defp dec(buffer, :smallint ), do: short(buffer)
-  defp dec(buffer, :text     ), do: {buffer, ""}
-  defp dec(buffer, :time     ), do: time(buffer)
+  defp dec(nil, _), do: {nil, ""}
+  defp dec(buffer, :ascii), do: {buffer, ""}
+  defp dec(buffer, :bigint), do: long(buffer)
+  defp dec(buffer, :blob), do: blob(buffer)
+  defp dec(buffer, :boolean), do: boolean(buffer)
+  defp dec(buffer, :counter), do: long(buffer)
+  defp dec(buffer, :date), do: date(buffer)
+  defp dec(buffer, :decimal), do: decimal(buffer)
+  defp dec(buffer, :double), do: double(buffer)
+  defp dec(buffer, :float), do: float(buffer)
+  defp dec(buffer, :inet), do: inet(buffer)
+  defp dec(buffer, :int), do: int(buffer)
+  defp dec(buffer, :smallint), do: short(buffer)
+  defp dec(buffer, :text), do: {buffer, ""}
+  defp dec(buffer, :time), do: time(buffer)
   defp dec(buffer, :timestamp), do: timestamp(buffer)
-  defp dec(buffer, :timeuuid ), do: uuid(buffer)
-  defp dec(buffer, :tinyint  ), do: tinyint(buffer)
-  defp dec(buffer, :uuid     ), do: uuid(buffer)
-  defp dec(buffer, :varchar  ), do: {buffer, ""}
-  defp dec(buffer, :varint   ), do: varint(buffer)
+  defp dec(buffer, :timeuuid), do: uuid(buffer)
+  defp dec(buffer, :tinyint), do: tinyint(buffer)
+  defp dec(buffer, :uuid), do: uuid(buffer)
+  defp dec(buffer, :varchar), do: {buffer, ""}
+  defp dec(buffer, :varint), do: varint(buffer)
 
-  defp dec(buffer, {:list, type}),   do: list(buffer, type)
-  defp dec(buffer, {:map, type}),    do: map(buffer, type)
-  defp dec(buffer, {:set, type}),    do: set(buffer, type)
+  defp dec(buffer, {:list, type}), do: list(buffer, type)
+  defp dec(buffer, {:map, type}), do: map(buffer, type)
+  defp dec(buffer, {:set, type}), do: set(buffer, type)
   defp dec(buffer, {:tuple, types}), do: tuple(buffer, types)
 
   defp dec(_buffer, {_type, size}) when is_integer(size) and size < 0, do: nil

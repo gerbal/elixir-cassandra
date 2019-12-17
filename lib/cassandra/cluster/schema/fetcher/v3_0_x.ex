@@ -12,13 +12,15 @@ defmodule Cassandra.Cluster.Schema.Fetcher.V3_0_x do
   end
 
   def select_keyspace(name) do
-    CQL.encode!(%CQL.Query{query: "SELECT * FROM system_schema.keyspaces WHERE keyspace_name='#{name}';"})
+    CQL.encode!(%CQL.Query{
+      query: "SELECT * FROM system_schema.keyspaces WHERE keyspace_name='#{name}';"
+    })
   end
 
   def select_keyspaces, do: select_schema("keyspaces")
-  def select_tables,    do: select_schema("tables")
-  def select_columns,   do: select_schema("columns")
-  def select_indexes,   do: select_schema("indexes")
+  def select_tables, do: select_schema("tables")
+  def select_columns, do: select_schema("columns")
+  def select_indexes, do: select_schema("indexes")
 
   defp select_schema(name) do
     CQL.encode!(%CQL.Query{query: "SELECT * FROM system_schema.#{name};"})
@@ -26,13 +28,13 @@ defmodule Cassandra.Cluster.Schema.Fetcher.V3_0_x do
 
   defp ip_to_string({_, _, _, _} = ip) do
     ip
-    |> Tuple.to_list
+    |> Tuple.to_list()
     |> Enum.join(".")
   end
 
   defp ip_to_string({_, _, _, _, _, _} = ip) do
     ip
-    |> Tuple.to_list
+    |> Tuple.to_list()
     |> Enum.map(&Integer.to_string(&1, 16))
     |> Enum.join(":")
   end

@@ -7,7 +7,7 @@ defmodule CQL.DataTypes.Time do
 
     {:ok, time} =
       seconds
-      |> :calendar.seconds_to_time
+      |> :calendar.seconds_to_time()
       |> Time.from_erl({nano, 6})
 
     {time, rest}
@@ -16,8 +16,8 @@ defmodule CQL.DataTypes.Time do
   def encode(%Time{microsecond: {microseconds, _}} = time) do
     seconds =
       time
-      |> Time.to_erl
-      |> :calendar.time_to_seconds
+      |> Time.to_erl()
+      |> :calendar.time_to_seconds()
 
     micro = seconds * 1000_000 + microseconds
     nano = micro * 1000

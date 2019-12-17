@@ -9,10 +9,10 @@ defmodule CQL.Register do
   @types [
     "TOPOLOGY_CHANGE",
     "STATUS_CHANGE",
-    "SCHEMA_CHANGE",
+    "SCHEMA_CHANGE"
   ]
 
-  defstruct [types: @types]
+  defstruct types: @types
 
   defimpl Request do
     def encode(%CQL.Register{types: types}) do

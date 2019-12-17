@@ -7,6 +7,7 @@ defmodule CQL.Result do
 
   def decode(buffer) do
     {kind, rest} = int(buffer)
+
     case kind do
       0x01 -> Result.Void.decode(rest)
       0x02 -> Result.Rows.decode(rest)

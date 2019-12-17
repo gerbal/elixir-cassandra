@@ -8,11 +8,10 @@ defmodule Cassandra.LoadBalancing.TokenAware do
   * `:max_tries` - number of connections to try before on request fail (default: `3`)
   """
 
-  defstruct [
-    wrapped: %Cassandra.LoadBalancing.RoundRobin{},
-  ]
+  defstruct wrapped: %Cassandra.LoadBalancing.RoundRobin{}
 
   def new([]), do: %__MODULE__{}
+
   def new([{policy, args}]) do
     wrapped = policy.new(args)
     %__MODULE__{wrapped: wrapped}
@@ -22,12 +21,17 @@ defmodule Cassandra.LoadBalancing.TokenAware do
     alias Cassandra.{Cluster, Statement, LoadBalancing}
     alias Cassandra.Session.ConnectionManager
 
-    def plan(balancer, %Statement{keyspace: keyspace, partition_key: partition_key} = statement, cluster, connection_manager)
-    when not is_nil(keyspace) and not is_nil(partition_key)
-    do
+    def plan(
+          balancer,
+          %Statement{keyspace: keyspace, partition_key: partition_key} = statement,
+          cluster,
+          connection_manager
+        )
+        when not is_nil(keyspace) and not is_nil(partition_key) do
       case Cluster.find_replicas(cluster, keyspace, partition_key) do
         [] ->
           {:error, :keyspace_not_found}
+
         replicas ->
           connections =
             connection_manager

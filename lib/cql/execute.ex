@@ -10,14 +10,16 @@ defmodule CQL.Execute do
 
   defstruct [
     :prepared,
-    :params,
+    :params
   ]
 
   defimpl Request do
-    def encode(%CQL.Execute{prepared: %Prepared{id: id, metadata: %{column_types: column_types}}, params: %QueryParams{} = params}) do
+    def encode(%CQL.Execute{
+          prepared: %Prepared{id: id, metadata: %{column_types: column_types}},
+          params: %QueryParams{} = params
+        }) do
       with {:ok, zipped} <- ok(zip(column_types, params.values)),
-           {:ok, encoded_params} <- ok(QueryParams.encode(%{params | values: zipped}))
-      do
+           {:ok, encoded_params} <- ok(QueryParams.encode(%{params | values: zipped})) do
         {:EXECUTE, short_bytes(id) <> encoded_params}
       end
     end

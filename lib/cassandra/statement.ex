@@ -11,21 +11,23 @@ defmodule Cassandra.Statement do
     :partition_key_picker,
     :values,
     :connections,
-    :streamer,
+    :streamer
   ]
 
   def new(query, options \\ []) do
     %__MODULE__{
       query: query,
       options: Keyword.delete(options, :values),
-      values: Keyword.get(options, :values, []),
+      values: Keyword.get(options, :values, [])
     }
   end
 
   def new(query, options, defaults) do
-    options = Keyword.put_new_lazy options, :consistency, fn ->
-      consistency(query, defaults)
-    end
+    options =
+      Keyword.put_new_lazy(options, :consistency, fn ->
+        consistency(query, defaults)
+      end)
+
     new(query, options)
   end
 
@@ -50,22 +52,25 @@ defmodule Cassandra.Statement do
   end
 
   def set_pk_picker(%__MODULE__{partition_key_picker: picker} = statement)
-  when is_function(picker)
-  do
+      when is_function(picker) do
     statement
   end
 
-  def set_pk_picker(%__MODULE__{prepared: %{metadata: %{global_spec: %{keyspace: keyspace}, pk_indices: [index]}}} = statement) do
+  def set_pk_picker(
+        %__MODULE__{
+          prepared: %{metadata: %{global_spec: %{keyspace: keyspace}, pk_indices: [index]}}
+        } = statement
+      ) do
     %__MODULE__{statement | partition_key_picker: &Enum.at(&1, index), keyspace: keyspace}
   end
 
   def set_pk_picker(statement), do: statement
 
   defp partition_key(%__MODULE__{partition_key_picker: picker}, values)
-  when is_function(picker)
-  do
+       when is_function(picker) do
     picker.(values)
   end
+
   defp partition_key(_, _), do: nil
 
   defp consistency(query, defaults) do
@@ -80,7 +85,7 @@ defmodule Cassandra.Statement do
   end
 
   defp read?("SELECT" <> _), do: true
-  defp read?(_),             do: false
+  defp read?(_), do: false
 
   defimpl DBConnection.Query do
     alias Cassandra.Statement
@@ -90,9 +95,10 @@ defmodule Cassandra.Statement do
         (statement.options || [])
         |> Keyword.merge(options)
         |> Keyword.put(:values, values)
-        |> CQL.QueryParams.new
+        |> CQL.QueryParams.new()
 
       execute = %CQL.Execute{prepared: statement.prepared, params: params}
+
       with {:ok, request} <- CQL.encode(execute) do
         {request, params}
       end
@@ -109,7 +115,8 @@ defmodule Cassandra.Statement do
     end
 
     def describe(statement, options) do
-      with {:ok, %CQL.Frame{body: %CQL.Result.Prepared{} = prepared}} <- CQL.decode(statement.response) do
+      with {:ok, %CQL.Frame{body: %CQL.Result.Prepared{} = prepared}} <-
+             CQL.decode(statement.response) do
         if options[:for_cache] do
           prepared
         else
@@ -120,6 +127,7 @@ defmodule Cassandra.Statement do
 
     def parse(statement, _options) do
       prepare = %CQL.Prepare{query: statement.query}
+
       with {:ok, request} <- CQL.encode(prepare) do
         %Statement{statement | request: request}
       end

@@ -21,9 +21,10 @@ defmodule Cassandra.LoadBalancing do
   end
 
   def take([], _), do: []
+
   def take(list, n) do
     list
-    |> Stream.cycle
+    |> Stream.cycle()
     |> Enum.take(n)
   end
 end

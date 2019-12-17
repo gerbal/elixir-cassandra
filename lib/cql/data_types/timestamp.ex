@@ -8,22 +8,22 @@ defmodule CQL.DataTypes.Timestamp do
     micro = rem(milliseconds, 1000) * 1000
 
     {:ok, timestamp} =
-      seconds + @epoch
-      |> :calendar.gregorian_seconds_to_datetime
+      (seconds + @epoch)
+      |> :calendar.gregorian_seconds_to_datetime()
       |> NaiveDateTime.from_erl({micro, 3})
 
     {timestamp, rest}
   end
 
   def encode(%DateTime{} = timestamp) do
-    timestamp |> DateTime.to_naive |> encode
+    timestamp |> DateTime.to_naive() |> encode
   end
 
   def encode(%NaiveDateTime{microsecond: {microseconds, _}} = timestamp) do
     seconds =
       timestamp
-      |> NaiveDateTime.to_erl
-      |> :calendar.datetime_to_gregorian_seconds
+      |> NaiveDateTime.to_erl()
+      |> :calendar.datetime_to_gregorian_seconds()
 
     milliseconds = div(microseconds, 1000)
     n = (seconds - @epoch) * 1000 + milliseconds

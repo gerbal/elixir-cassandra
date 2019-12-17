@@ -5,14 +5,15 @@ defmodule CQL.DataTypes.Date do
 
   def decode(<<days::integer-32, rest::bytes>>) do
     {:ok, date} =
-      days + @epoch
-      |> :calendar.gregorian_days_to_date
-      |> Date.from_erl
+      (days + @epoch)
+      |> :calendar.gregorian_days_to_date()
+      |> Date.from_erl()
 
     {date, rest}
   end
 
-  def encode(%Date{} = date), do: date |> Date.to_erl |> encode
+  def encode(%Date{} = date), do: date |> Date.to_erl() |> encode
+
   def encode({_, _, _} = date) do
     days = :calendar.date_to_gregorian_days(date)
     n = days - @epoch

@@ -7,7 +7,7 @@ defmodule CQL.Prepare do
 
   alias CQL.{Request, Prepare}
 
-  defstruct [query: ""]
+  defstruct query: ""
 
   defimpl Request do
     def encode(%Prepare{query: query}) do

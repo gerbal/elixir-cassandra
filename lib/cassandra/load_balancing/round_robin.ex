@@ -8,7 +8,7 @@ defmodule Cassandra.LoadBalancing.RoundRobin do
   * `:max_tries` - number of connections to try before on request fail (default: `3`)
   """
 
-  defstruct [num_connections: 10, max_tries: 3]
+  defstruct num_connections: 10, max_tries: 3
 
   def new(args) do
     struct(__MODULE__, args)
@@ -21,8 +21,8 @@ defmodule Cassandra.LoadBalancing.RoundRobin do
     def plan(balancer, statement, _cluster, connection_manager) do
       connections =
         connection_manager
-        |> ConnectionManager.connections
-        |> Enum.shuffle
+        |> ConnectionManager.connections()
+        |> Enum.shuffle()
         |> LoadBalancing.take(balancer.max_tries)
 
       %{statement | connections: connections}

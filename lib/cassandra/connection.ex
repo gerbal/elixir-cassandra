@@ -11,33 +11,34 @@ defmodule Cassandra.Connection do
     port: 9042,
     host: {127, 0, 0, 1},
     connect_timeout: 1000,
-    timeout: 5000,
+    timeout: 5000
   ]
 
   @header_length 9
-  @startup_request_lz4 CQL.encode!(%CQL.Startup{options: %{"CQL_VERSION" => "3.0.0", "COMPRESSION" => "lz4"}})
+  @startup_request_lz4 CQL.encode!(%CQL.Startup{
+                         options: %{"CQL_VERSION" => "3.0.0", "COMPRESSION" => "lz4"}
+                       })
   @startup_request CQL.encode!(%CQL.Startup{options: %{"CQL_VERSION" => "3.0.0"}})
   @options_request CQL.encode!(%CQL.Options{})
 
   ### API ###
 
   def run_query(host, query, options \\ []) do
-    with {:ok, request} <- CQL.encode(%CQL.Query{query: query, params: CQL.QueryParams.new(options)}),
-         {:ok, %{socket: socket}} <- connect(host, options)
-    do
+    with {:ok, request} <-
+           CQL.encode(%CQL.Query{query: query, params: CQL.QueryParams.new(options)}),
+         {:ok, %{socket: socket}} <- connect(host, options) do
       result = query(socket, request)
       :gen_tcp.close(socket)
       result
     end
   else
     {:error, %ConnectionError{} = error} -> error
-    error                                -> error
+    error -> error
   end
 
   def query(socket, request, timeout \\ @defaults[:timeout]) do
     with :ok <- tcp_send(socket, request),
-         {:ok, result} <- receive_response(socket, timeout)
-    do
+         {:ok, result} <- receive_response(socket, timeout) do
       result
     end
   end
@@ -52,12 +53,14 @@ defmodule Cassandra.Connection do
     hosts
     |> Stream.map(&{&1, connect(&1, options)})
     |> Stream.filter(&ok?/1)
-    |> Stream.map(fn {host, {:ok, %{socket: socket, options: options}}} -> {host, socket, options} end)
+    |> Stream.map(fn {host, {:ok, %{socket: socket, options: options}}} ->
+      {host, socket, options}
+    end)
   end
 
   def connect({host, port}, options) do
     options
-    |> Keyword.merge([host: host, port: port])
+    |> Keyword.merge(host: host, port: port)
     |> connect
   end
 
@@ -74,31 +77,43 @@ defmodule Cassandra.Connection do
   ### DBConnection Callbacks ###
 
   def connect(options) do
-    options         = Keyword.merge(@defaults, options)
-    host            = get_host(options)
-    port            = options[:port]
-    timeout         = options[:timeout]
+    options = Keyword.merge(@defaults, options)
+    host = get_host(options)
+    port = options[:port]
+    timeout = options[:timeout]
     connect_timeout = options[:connect_timeout]
-    keyspace        = options[:keyspace]
-    tcp_options     = [
+    keyspace = options[:keyspace]
+
+    tcp_options = [
       :binary,
       {:active, false},
       {:keepalive, true},
-      {:packet, :raw},
+      {:packet, :raw}
     ]
-    with {:ok, socket}  <- :gen_tcp.connect(host, port, tcp_options, connect_timeout),
+
+    with {:ok, socket} <- :gen_tcp.connect(host, port, tcp_options, connect_timeout),
          {:ok, options} <- fetch_options(socket, timeout),
-         :ok            <- handshake(socket, timeout, options),
-         :ok            <- set_keyspace(socket, keyspace, timeout)
-    do
-      {:ok, %{socket: socket, host: host, timeout: timeout, options: options, last_cursor: 0, cursors: %{}}}
+         :ok <- handshake(socket, timeout, options),
+         :ok <- set_keyspace(socket, keyspace, timeout) do
+      {:ok,
+       %{
+         socket: socket,
+         host: host,
+         timeout: timeout,
+         options: options,
+         last_cursor: 0,
+         cursors: %{}
+       }}
     else
-      {:error, reason} when is_atom(reason) -> {:error, ConnectionError.new("TCP Connect", reason)}
-      error                                 -> {:error, error}
+      {:error, reason} when is_atom(reason) ->
+        {:error, ConnectionError.new("TCP Connect", reason)}
+
+      error ->
+        {:error, error}
     end
   end
 
-  def checkin(state),  do: {:ok, state}
+  def checkin(state), do: {:ok, state}
   def checkout(state), do: {:ok, state}
 
   def disconnect(_error, %{socket: socket}) do
@@ -146,11 +161,15 @@ defmodule Cassandra.Connection do
 
   def handle_next(%Statement{} = statement, {cursor, params}, _options, state) do
     paging_state = Map.get(state.cursors, cursor)
-    execute = %CQL.Execute{prepared: statement.prepared, params: %{params | paging_state: paging_state}}
+
+    execute = %CQL.Execute{
+      prepared: statement.prepared,
+      params: %{params | paging_state: paging_state}
+    }
+
     with {:ok, request} <- CQL.encode(execute),
          {:ok, frame} <- fetch(request, state.socket, state.timeout),
-         %CQL.Result.Rows{paging_state: paging_state} = rows <- CQL.Result.Rows.decode_meta(frame)
-    do
+         %CQL.Result.Rows{paging_state: paging_state} = rows <- CQL.Result.Rows.decode_meta(frame) do
       if is_nil(paging_state) do
         {:deallocate, rows, state}
       else
@@ -179,9 +198,8 @@ defmodule Cassandra.Connection do
   ### Helpers ###
 
   defp fetch(request, socket, timeout) do
-    with :ok          <- tcp_send(socket, request),
-         {:ok, frame} <- receive_frame(socket, timeout)
-    do
+    with :ok <- tcp_send(socket, request),
+         {:ok, frame} <- receive_frame(socket, timeout) do
       {:ok, frame}
     end
   end
@@ -204,20 +222,18 @@ defmodule Cassandra.Connection do
 
   defp receive_response(socket, timeout) do
     with {:ok, frame} <- receive_frame(socket, timeout),
-         {:ok, %CQL.Frame{body: body}} <- CQL.decode(frame)
-    do
+         {:ok, %CQL.Frame{body: body}} <- CQL.decode(frame) do
       {:ok, body}
     end
   end
 
   defp receive_frame(socket, timeout) do
     with {:ok, header} <- tcp_receive(socket, @header_length, timeout),
-         {:ok, body}   <- receive_body(socket, header, timeout),
-         {:ok, frame}  <- CQL.decode_error(header <> body)
-    do
+         {:ok, body} <- receive_body(socket, header, timeout),
+         {:ok, frame} <- CQL.decode_error(header <> body) do
       {:ok, frame}
     else
-      error = %CQL.Error{}       -> error
+      error = %CQL.Error{} -> error
       error = %ConnectionError{} -> error
     end
   end
@@ -226,31 +242,32 @@ defmodule Cassandra.Connection do
     case CQL.Frame.body_length(header) do
       {:ok, 0} -> {:ok, <<>>}
       {:ok, n} -> tcp_receive(socket, n, timeout)
-      error    -> error
+      error -> error
     end
   end
 
   defp set_keyspace(_, nil, _), do: :ok
+
   defp set_keyspace(socket, keyspace, timeout) do
     query = %CQL.Query{query: "USE #{keyspace}"}
-    with {:ok, request}                       <- CQL.encode(query),
-         :ok                                  <- tcp_send(socket, request),
-         {:ok, %SetKeyspace{name: ^keyspace}} <- receive_response(socket, timeout)
-    do
+
+    with {:ok, request} <- CQL.encode(query),
+         :ok <- tcp_send(socket, request),
+         {:ok, %SetKeyspace{name: ^keyspace}} <- receive_response(socket, timeout) do
       :ok
     else
       %CQL.Error{} = error ->
         Logger.error(Exception.format_banner(:error, error, []))
         :ok
 
-      error -> error
+      error ->
+        error
     end
   end
 
   defp fetch_options(socket, timeout) do
-    with :ok                                     <- tcp_send(socket, @options_request),
-         {:ok, %CQL.Supported{options: options}} <- receive_response(socket, timeout)
-    do
+    with :ok <- tcp_send(socket, @options_request),
+         {:ok, %CQL.Supported{options: options}} <- receive_response(socket, timeout) do
       {:ok, Enum.into(options, %{})}
     end
   end
@@ -264,24 +281,23 @@ defmodule Cassandra.Connection do
       end
 
     with :ok <- tcp_send(socket, startup_request),
-         {:ok, %CQL.Ready{}} <- receive_response(socket, timeout)
-    do
+         {:ok, %CQL.Ready{}} <- receive_response(socket, timeout) do
       :ok
     end
   end
 
   defp get_host(options) do
     case Keyword.get(options, :host) do
-      nil                                -> @defaults[:host]
-      %Cassandra.Host{ip: ip}            -> ip
+      nil -> @defaults[:host]
+      %Cassandra.Host{ip: ip} -> ip
       address when is_bitstring(address) -> to_charlist(address)
-      inet                               -> inet
+      inet -> inet
     end
   end
 
   defp ok?({_, {:ok, _}}), do: true
-  defp ok?(_),             do: false
+  defp ok?(_), do: false
 
   defp next_cursor(500_000), do: 1
-  defp next_cursor(n)      , do: n + 1
+  defp next_cursor(n), do: n + 1
 end

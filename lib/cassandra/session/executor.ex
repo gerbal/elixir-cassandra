@@ -12,8 +12,7 @@ defmodule Cassandra.Session.Executor do
   def start_link(cluster, options) do
     with {:ok, balancer} <- Keyword.fetch(options, :balancer),
          {:ok, connection_manager} <- Keyword.fetch(options, :connection_manager),
-         {:ok, cache} <- Keyword.fetch(options, :cache)
-    do
+         {:ok, cache} <- Keyword.fetch(options, :cache) do
       options = Keyword.drop(options, [:balancer, :connection_manager])
       GenServer.start_link(__MODULE__, [cluster, balancer, connection_manager, cache, options])
     else
@@ -21,11 +20,13 @@ defmodule Cassandra.Session.Executor do
     end
   end
 
-  def execute(executor, query, options, timeout \\ 15_000) when is_binary(query) and is_list(options) do
+  def execute(executor, query, options, timeout \\ 15_000)
+      when is_binary(query) and is_list(options) do
     GenServer.call(executor, {:execute, query, options}, timeout)
   end
 
-  def stream(executor, query, func, options, timeout \\ 15_000) when is_binary(query) and is_list(options) do
+  def stream(executor, query, func, options, timeout \\ 15_000)
+      when is_binary(query) and is_list(options) do
     options = Keyword.put(options, :streamer, func)
     GenServer.call(executor, {:execute, query, options}, timeout)
   end
@@ -45,7 +46,7 @@ defmodule Cassandra.Session.Executor do
       options: options,
       cluster: cluster,
       balancer: balancer,
-      connection_manager: connection_manager,
+      connection_manager: connection_manager
     }
 
     {:ok, state}
@@ -69,6 +70,7 @@ defmodule Cassandra.Session.Executor do
       {:stop, :no_connection} ->
         GenServer.reply(from, Cassandra.ConnectionError.new("execute", "no connection"))
         {:stop, :no_connection, state}
+
       result ->
         GenServer.reply(from, result)
         {:noreply, state}
@@ -101,7 +103,11 @@ defmodule Cassandra.Session.Executor do
     if is_nil(streamer) do
       DBConnection.execute(connection, statement, statement.values, options)
     else
-      DBConnection.run(connection, &streamer.(DBConnection.stream(&1, statement, statement.values, options)), options)
+      DBConnection.run(
+        connection,
+        &streamer.(DBConnection.stream(&1, statement, statement.values, options)),
+        options
+      )
     end
   rescue
     error -> {:error, error}
@@ -126,11 +132,14 @@ defmodule Cassandra.Session.Executor do
         error
 
       {:error, reason} ->
-        Logger.warn("#{__MODULE__} got error: #{inspect reason}")
+        Logger.warn("#{__MODULE__} got error: #{inspect(reason)}")
         run(%Statement{statement | connections: connections}, options, cache)
 
-      {:ok, result} -> result
-      result        -> result
+      {:ok, result} ->
+        result
+
+      result ->
+        result
     end
   end
 end

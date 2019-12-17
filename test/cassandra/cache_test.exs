@@ -49,8 +49,11 @@ defmodule Cassandra.CacheTest do
     end
 
     test "with error returning func", %{cache: cache} do
-      assert {:error, :some_value} = Cache.put_new_lazy(cache, :put_new_lazy_test_error1, fn -> :some_value end)
-      assert {:error, :reason} = Cache.put_new_lazy(cache, :put_new_lazy_test_error2, fn -> {:error, :reason} end)
+      assert {:error, :some_value} =
+               Cache.put_new_lazy(cache, :put_new_lazy_test_error1, fn -> :some_value end)
+
+      assert {:error, :reason} =
+               Cache.put_new_lazy(cache, :put_new_lazy_test_error2, fn -> {:error, :reason} end)
     end
 
     test "do not call func if key exists", %{cache: cache} do
